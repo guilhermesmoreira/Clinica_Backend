@@ -25,3 +25,22 @@ def listar_procedimentos():
         return response.json()
     except requests.RequestException as e:
         return {"erro": "Erro ao buscar dados da Clinicorp", "detalhes": str(e)}
+
+@app.get("/pacientes")
+def buscar_paciente_por_nome(nome: str):
+    url = "https://api.clinicorp.com/rest/v1/patient/get"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "subscriber_id": "teharicr",
+        "Name": nome
+    }
+
+    try:
+        response = requests.get(url, auth=auth, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {
+            "erro": "Erro ao buscar paciente na Clinicorp",
+            "detalhes": str(e)
+        }
