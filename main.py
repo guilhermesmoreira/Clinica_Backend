@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
+from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 from requests.auth import HTTPBasicAuth
@@ -42,5 +43,28 @@ def buscar_paciente_por_nome(nome: str):
     except requests.RequestException as e:
         return {
             "erro": "Erro ao buscar paciente na Clinicorp",
+            "detalhes": str(e)
+        }
+
+@app.get("/estimativas")
+def listar_estimativas(
+    de: date = Query(..., alias="from"),
+    ate: date = Query(..., alias="to")
+):
+    url = "https://api.clinicorp.com/rest/v1/patient/list_estimates"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "subscriber_id": "teharicr",
+        "from": de.strftime("%Y-%m-%d"),
+        "to": ate.strftime("%Y-%m-%d"),
+    }
+
+    try:
+        response = requests.get(url, auth=auth, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {
+            "erro": "Erro ao buscar estimativas na Clinicorp",
             "detalhes": str(e)
         }
