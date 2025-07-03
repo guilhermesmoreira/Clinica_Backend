@@ -68,3 +68,55 @@ def listar_estimativas(
             "erro": "Erro ao buscar estimativas na Clinicorp",
             "detalhes": str(e)
         }
+        
+@app.get("/agendamentos")
+def listar_agendamentos(patient_id: str):
+    url = f"https://api.clinicorp.com/rest/v1/patient/list_appointments"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "PatientId": patient_id
+    }
+
+    try:
+        response = requests.get(url, auth=auth, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {
+            "erro": "Erro ao buscar agendamentos na Clinicorp",
+            "detalhes": str(e)
+        }
+
+@app.get("/orcamentos")
+def listar_orcamentos(from_: str = Query(..., alias="from"), to: str = Query(..., alias="to")):
+    url = "https://api.clinicorp.com/rest/v1/estimates/list"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "subscriber_id": "teharicr",
+        "from": from_,
+        "to": to,
+    }
+
+    try:
+        response = requests.get(url, auth=auth, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {"erro": "Erro ao buscar orçamentos", "detalhes": str(e)}
+
+
+@app.get("/orcamento_detalhe")
+def buscar_orcamento_detalhe(treatment_id: int):
+    url = "https://api.clinicorp.com/rest/v1/estimates/get"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "subscriber_id": "teharicr",
+        "treatment_id": treatment_id
+    }
+
+    try:
+        response = requests.get(url, auth=auth, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {"erro": "Erro ao buscar detalhes do orçamento", "detalhes": str(e)}
