@@ -148,6 +148,33 @@ def listar_agendamentos(patient_id: str):
             "detalhes": str(e)
         }
 
+@app.get("/agendamentos_periodo")
+def listar_agendamentos_por_periodo(
+    from_: str = Query(..., alias="from"),
+    to: str = Query(..., alias="to"),
+    patient_id: str = Query(None)
+):
+    """
+    Busca agendamentos dentro de um período específico.
+    Se patient_id não for fornecido, retorna todos os agendamentos do período.
+    """
+    url = "https://api.clinicorp.com/rest/v1/patient/list_appointments"
+    auth = HTTPBasicAuth("teharicr", "6866dbfa-bf85-425a-8b60-2b1665fb944d")
+    params = {
+        "from": from_,
+        "to": to,
+    }
+    
+    if patient_id:
+        params["PatientId"] = patient_id
+
+    try:
+        response = requests.get(url, auth=auth, params=params, verify=False, timeout=30)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {"erro": "Erro ao buscar agendamentos do período", "detalhes": str(e)}
+
 @app.get("/orcamentos")
 def listar_orcamentos(from_: str = Query(..., alias="from"), to: str = Query(..., alias="to")):
     url = "https://api.clinicorp.com/rest/v1/estimates/list"
