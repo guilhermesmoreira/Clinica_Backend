@@ -1,12 +1,26 @@
-from fastapi import FastAPI, Query
-from datetime import date
+from fastapi import FastAPI, Query, Depends, HTTPException, status
+from datetime import date, datetime
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 from requests.auth import HTTPBasicAuth
 import ssl
 import urllib3
+from sqlalchemy.orm import Session
+from database.connection import get_db, create_tables
+from services.planejamento_service import PlanejamentoService
+from schemas import (
+    PlanejamentoCompletoCreate, 
+    PlanejamentoCompleto, 
+    PlanejamentoResponse,
+    PlanejamentoUpdate
+)
 
 app = FastAPI()
+
+# Criar tabelas na inicialização
+@app.on_event("startup")
+async def startup_event():
+    create_tables()
 
 # Configurações SSL mais robustas
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -208,3 +222,77 @@ def buscar_orcamento_detalhe(treatment_id: int):
         return response.json()
     except requests.RequestException as e:
         return {"erro": "Erro ao buscar detalhes do orçamento", "detalhes": str(e)}
+
+
+# ==================== ENDPOINTS DE PLANEJAMENTO ====================
+
+@app.post("/planejamentos", response_model=PlanejamentoResponse)
+def criar_planejamento(
+    planejamento_data: PlanejamentoCompletoCreate,
+    db: Session = Depends(get_db)
+):
+    """Criar um novo planejamento completo"""
+    service = PlanejamentoService(db)
+    planejamento = service.criar_planejamento(planejamento_data)
+    return planejamento
+
+@app.get("/planejamentos", response_model=list[PlanejamentoResponse])
+def listar_planejamentos(db: Session = Depends(get_db)):
+    """Listar todos os planejamentos"""
+    service = PlanejamentoService(db)
+    return service.listar_todos_planejamentos()
+
+@app.get("/planejamentos/{planejamento_id}", response_model=PlanejamentoCompleto)
+def buscar_planejamento_por_id(
+    planejamento_id: int,
+    db: Session = Depends(get_db)
+):
+    """Buscar planejamento por ID com todos os relacionamentos"""
+    service = PlanejamentoService(db)
+    planejamento = service.buscar_planejamento_completo(planejamento_id)
+    if not planejamento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Planejamento não encontrado"
+        )
+    return planejamento
+
+@app.get("/planejamentos/paciente/{paciente_id}", response_model=list[PlanejamentoResponse])
+def buscar_planejamentos_por_paciente(
+    paciente_id: str,
+    db: Session = Depends(get_db)
+):
+    """Buscar todos os planejamentos de um paciente"""
+    service = PlanejamentoService(db)
+    return service.buscar_planejamentos_por_paciente(paciente_id)
+
+@app.put("/planejamentos/{planejamento_id}", response_model=PlanejamentoResponse)
+def atualizar_planejamento(
+    planejamento_id: int,
+    planejamento_data: PlanejamentoUpdate,
+    db: Session = Depends(get_db)
+):
+    """Atualizar um planejamento"""
+    service = PlanejamentoService(db)
+    planejamento = service.atualizar_planejamento(planejamento_id, planejamento_data)
+    if not planejamento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Planejamento não encontrado"
+        )
+    return planejamento
+
+@app.delete("/planejamentos/{planejamento_id}")
+def deletar_planejamento(
+    planejamento_id: int,
+    db: Session = Depends(get_db)
+):
+    """Deletar um planejamento (soft delete)"""
+    service = PlanejamentoService(db)
+    sucesso = service.deletar_planejamento(planejamento_id)
+    if not sucesso:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Planejamento não encontrado"
+        )
+    return {"message": "Planejamento deletado com sucesso"}
