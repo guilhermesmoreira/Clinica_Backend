@@ -26,10 +26,16 @@ class PlanejamentoResponse(PlanejamentoBase):
         from_attributes = True
 
 # Schemas para Cards
+class AgendamentoData(BaseModel):
+    status: str
+    data: str
+    horario: str
+    dataAgendamento: str
+
 class CardData(BaseModel):
     paciente: str
     procedimento: str
-    agendamento: Dict[str, Any]
+    agendamento: AgendamentoData
     pacienteId: Optional[str] = None
     categoria: Optional[str] = None
     duracao: Optional[int] = None
